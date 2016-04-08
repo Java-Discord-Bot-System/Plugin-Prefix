@@ -3,7 +3,7 @@ package com.almightyalpaca.discord.bot.plugin.prefix;
 import java.util.Iterator;
 
 import com.almightyalpaca.discord.bot.system.command.Command;
-import com.almightyalpaca.discord.bot.system.command.annotation.CommandHandler;
+import com.almightyalpaca.discord.bot.system.command.CommandHandler;
 import com.almightyalpaca.discord.bot.system.command.arguments.special.Rest;
 import com.almightyalpaca.discord.bot.system.config.Config;
 import com.almightyalpaca.discord.bot.system.events.commands.CommandEvent;
@@ -27,45 +27,40 @@ public class PrefixPlugin extends Plugin {
 		}
 
 		@CommandHandler(dm = false, guild = true, async = true)
-		private void onCommand(final CommandEvent event, String action, Rest prefix) {
+		private void onCommand(final CommandEvent event, final String action, final Rest prefix) {
 			if (action.equalsIgnoreCase("list")) {
-				onCommand(event);
+				final MessageBuilder builder = new MessageBuilder();
+
+				builder.appendString("The following prefixes are active for this server:", Formatting.BOLD).newLine();
+
+				final CommandPrefixEvent prefixEvent = new CommandPrefixEvent(PrefixPlugin.this, event.getGuild());
+				prefixEvent.fire();
+
+				for (final String string : prefixEvent.getPrefixes()) {
+					builder.appendString(string).newLine();
+				}
+
+				builder.send(event.getChannel());
 			} else if (action.equalsIgnoreCase("add")) {
-				Iterator<JsonElement> iterator = config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray()).iterator();
+				final Iterator<JsonElement> iterator = PrefixPlugin.this.config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray()).iterator();
 				while (iterator.hasNext()) {
-					String string = iterator.next().getAsString();
+					final String string = iterator.next().getAsString();
 					if (string.equalsIgnoreCase(prefix.getString())) {
 						iterator.remove();
 					}
 				}
-				config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray()).add(prefix.getString().toLowerCase());
-				config.save();
+				PrefixPlugin.this.config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray()).add(prefix.getString().toLowerCase());
+				PrefixPlugin.this.config.save();
 			} else if (action.equalsIgnoreCase("remove")) {
-				Iterator<JsonElement> iterator = config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray()).iterator();
+				final Iterator<JsonElement> iterator = PrefixPlugin.this.config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray()).iterator();
 				while (iterator.hasNext()) {
-					String string = iterator.next().getAsString();
+					final String string = iterator.next().getAsString();
 					if (string.equalsIgnoreCase(prefix.getString())) {
 						iterator.remove();
 					}
 				}
-				config.save();
+				PrefixPlugin.this.config.save();
 			}
-		}
-
-		@CommandHandler(dm = false, guild = true, async = true)
-		private void onCommand(final CommandEvent event) {
-			MessageBuilder builder = new MessageBuilder();
-
-			builder.appendString("The following prefixes are active for this server:", Formatting.BOLD).newLine();
-
-			CommandPrefixEvent prefixEvent = new CommandPrefixEvent(PrefixPlugin.this, event.getGuild());
-			prefixEvent.fire();
-
-			for (String prefix : prefixEvent.getPrefixes()) {
-				builder.appendString(prefix).newLine();
-			}
-
-			builder.send(event.getChannel());
 		}
 	}
 
@@ -88,7 +83,7 @@ public class PrefixPlugin extends Plugin {
 
 	@EventHandler
 	private void onCommandPrefixEvent(final CommandPrefixEvent event) {
-		for (JsonElement element : config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray())) {
+		for (final JsonElement element : this.config.getJsonArray("guilds." + event.getGuild().getId(), new JsonArray())) {
 			event.addPrefix(element.getAsString());
 		}
 	}
